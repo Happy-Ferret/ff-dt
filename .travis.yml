@@ -1,20 +1,29 @@
+language: python
+
 cache:
   directories:
     - gecko
 
+env:
+  - DISPLAY=':99.0'
+
+addons:
+  apt:
+    packages:
+      - autoconf2.13
+
 install:
-  - ! [ -d gecko ] && git clone --depth 1 https://github.com/mozilla/gecko-dev.git gecko
-  - cd gecko
-  - git fetch
-  - git checkout 
+  - pip install --upgrade pip
+  - pip install -U mercurial
+  - ./clone-gecko.sh
 
 before_script:
-  - cd gecko
-  - echo "ac_add_options --enable-artifact-builds" > mozconfig
-  - echo "mk_add_options AUTOCLOBBER=1 >> mozconfig
-  - ./mach build
+  - ./build-firefox.sh
+  - sh -e /etc/init.d/xvfb start
 
 script:
+  - ./build-devtools-xpi.sh
   - cd gecko
-  - ./mach mochitest devtools/ --install-addon ../devtools.xpi
-
+  - ls -l $PWD/../devtools.xpi
+  - ./mach mochitest devtools/ --install-extension $PWD/../devtools.xpi 2>&1 | tee mochitest-logs | grep -E "TEST-(START|OK|UNEXPECTED)"
+  - cd ..
